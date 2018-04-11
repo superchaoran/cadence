@@ -100,6 +100,7 @@ type (
 
 	// TODO: This should be part of persistence layer
 	decisionInfo struct {
+		Version         int64
 		ScheduleID      int64
 		StartedID       int64
 		RequestID       string
@@ -674,6 +675,7 @@ func (e *mutableStateBuilder) DeleteUserTimer(timerID string) {
 // GetPendingDecision returns details about the in-progress decision task
 func (e *mutableStateBuilder) GetPendingDecision(scheduleEventID int64) (*decisionInfo, bool) {
 	di := &decisionInfo{
+		Version:         e.executionInfo.DecisionVersion,
 		ScheduleID:      e.executionInfo.DecisionScheduleID,
 		StartedID:       e.executionInfo.DecisionStartedID,
 		RequestID:       e.executionInfo.DecisionRequestID,
@@ -725,6 +727,7 @@ func (e *mutableStateBuilder) UpdateDecision(di *decisionInfo) {
 // DeleteDecision deletes a decision task.
 func (e *mutableStateBuilder) DeleteDecision() {
 	emptyDecisionInfo := &decisionInfo{
+		Version:         0,
 		ScheduleID:      emptyEventID,
 		StartedID:       emptyEventID,
 		RequestID:       emptyUUID,
@@ -1195,6 +1198,7 @@ func (e *mutableStateBuilder) ReplicateActivityTaskScheduledEvent(
 	}
 
 	ai := &persistence.ActivityInfo{
+		Version:                  event.GetVersion(),
 		ScheduleID:               scheduleEventID,
 		ScheduledEvent:           scheduleEvent,
 		ScheduledTime:            time.Unix(0, *event.Timestamp),
@@ -1498,6 +1502,7 @@ func (e *mutableStateBuilder) ReplicateRequestCancelExternalWorkflowExecutionIni
 	// TODO: Evaluate if we need cancelRequestID also part of history event
 	initiatedEventID := event.GetEventId()
 	ri := &persistence.RequestCancelInfo{
+		Version:         event.GetVersion(),
 		InitiatedID:     initiatedEventID,
 		CancelRequestID: cancelRequestID,
 	}
@@ -1571,6 +1576,7 @@ func (e *mutableStateBuilder) ReplicateSignalExternalWorkflowExecutionInitiatedE
 	initiatedEventID := event.GetEventId()
 	attributes := event.SignalExternalWorkflowExecutionInitiatedEventAttributes
 	ri := &persistence.SignalInfo{
+		Version:         event.GetVersion(),
 		InitiatedID:     initiatedEventID,
 		SignalRequestID: signalRequestID,
 		SignalName:      attributes.GetSignalName(),
@@ -1650,6 +1656,7 @@ func (e *mutableStateBuilder) ReplicateTimerStartedEvent(event *workflow.History
 	// TODO: Time skew need to be taken in to account.
 	expiryTime := time.Now().Add(fireTimeout)
 	ti := &persistence.TimerInfo{
+		Version:    event.GetVersion(),
 		TimerID:    timerID,
 		ExpiryTime: expiryTime,
 		StartedID:  event.GetEventId(),
@@ -1848,7 +1855,7 @@ func (e *mutableStateBuilder) ReplicateWorkflowExecutionContinuedAsNewEvent(doma
 			TaskList:   newStateBuilder.executionInfo.TaskList,
 			ScheduleID: di.ScheduleID,
 		}},
-		DecisionScheduleID:          di.ScheduleID,
+		DecisionScheduleID:          di.ScheduleID, // TODO add decision version, when doing crodd DC
 		DecisionStartedID:           di.StartedID,
 		DecisionStartToCloseTimeout: di.DecisionTimeout,
 		ContinueAsNew:               true,
@@ -1877,6 +1884,7 @@ func (e *mutableStateBuilder) ReplicateStartChildWorkflowExecutionInitiatedEvent
 
 	initiatedEventID := event.GetEventId()
 	ci := &persistence.ChildExecutionInfo{
+		Version:         event.GetVersion(),
 		InitiatedID:     initiatedEventID,
 		InitiatedEvent:  initiatedEvent,
 		StartedID:       emptyEventID,

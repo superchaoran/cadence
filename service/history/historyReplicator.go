@@ -373,6 +373,7 @@ func (r *historyReplicator) ApplyEvents(request *h.ReplicateEventsRequest) (retE
 				NextEventID:                 msBuilder.GetNextEventID(),
 				LastProcessedEvent:          emptyEventID,
 				TransferTasks:               nil, // TODO: Generate transfer task
+				DecisionVersion:             failoverVersion,
 				DecisionScheduleID:          decisionScheduleID,
 				DecisionStartedID:           decisionStartID,
 				DecisionStartToCloseTimeout: decisionTimeout,
